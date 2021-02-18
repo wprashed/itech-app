@@ -82,6 +82,7 @@ function run_itech_app() {
 run_itech_app();
 
 
+// Post
 function itech_api_route_for_post( $route, $post ) {
 	if ( $post->post_type === 'posts') {
 		$route = '/wp/v2/posts/' . $post->ID;
@@ -90,6 +91,8 @@ function itech_api_route_for_post( $route, $post ) {
 	return $route;
 }
 
+
+// Video
 function itech_api_route_for_video_post( $route, $post ) {
 	if ( $post->post_type === 'video' ) {
 		$route = '/wp/v2/video/' . $post->ID;
@@ -98,6 +101,8 @@ function itech_api_route_for_video_post( $route, $post ) {
 	return $route;
 }
 
+
+// Sticky Post
 function itech_api_route_for_sticky_post( $route, $post ) {
 	if ( $post->post_type === 'posts' && $post->sticky == 'true' ) {
 		$route = '/wp/v2/posts?sticky=true' . $post->ID;
@@ -106,52 +111,47 @@ function itech_api_route_for_sticky_post( $route, $post ) {
 	return $route;
 }
 
-function gt_get_post_view() {
+
+// Post View Count
+function it_get_post_view() {
     $count = get_post_meta( get_the_ID(), 'post_views_count', true );
     return "$count views";
 }
-function gt_set_post_view() {
+function it_set_post_view() {
     $key = 'post_views_count';
     $post_id = get_the_ID();
     $count = (int) get_post_meta( $post_id, $key, true );
     $count++;
     update_post_meta( $post_id, $key, $count );
 }
-function gt_posts_column_views( $columns ) {
+function it_posts_column_views( $columns ) {
     $columns['post_views'] = 'Views';
     return $columns;
 }
-function gt_posts_custom_column_views( $column ) {
+function it_posts_custom_column_views( $column ) {
     if ( $column === 'post_views') {
-        echo gt_get_post_view();
+        echo it_get_post_view();
     }
 }
-add_filter( 'manage_posts_columns', 'gt_posts_column_views' );
-add_action( 'manage_posts_custom_column', 'gt_posts_custom_column_views' );
+add_filter( 'manage_posts_columns', 'it_posts_column_views' );
+add_action( 'manage_posts_custom_column', 'it_posts_custom_column_views' );
 
-function sv_add_page_coupon_notice( $content ) {
+function itech_post_view_count( $content ) {
 	if( is_single())  {
-		gt_set_post_view();
-		echo "View:"; {?>
-		<?= gt_get_post_view(); 
+		it_set_post_view();
+		 {?>
+		 	&#128065;
+		<?= it_get_post_view(); 
 		}
 	}
 	return $content;
 }
-add_filter( 'the_content', 'sv_add_page_coupon_notice' );
+add_filter( 'the_content', 'itech_post_view_count' );
 
-
+// Register
 add_action('rest_api_init', 'wp_rest_user_endpoints');
-/**
- * Register a new user
- *
- * @param  WP_REST_Request $request Full details about the request.
- * @return array $args.
- **/
+
 function wp_rest_user_endpoints($request) {
-  /**
-   * Handle Register User request.
-   */
   register_rest_route('wp/v2/users/register/', array(
     'methods' => 'POST',
     'callback' => 'wc_rest_user_endpoint_handler',
@@ -163,7 +163,7 @@ function wc_rest_user_endpoint_handler($request = null) {
   $username = sanitize_text_field($parameters['username']);
   $email = sanitize_text_field($parameters['email']);
   $password = sanitize_text_field($parameters['password']);
-  // $role = sanitize_text_field($parameters['role']);
+  $role = sanitize_text_field($parameters['role']);
   $error = new WP_Error();
   if (empty($username)) {
     $error->add(400, __("Username field 'username' is required.", 'wp-rest-user'), array('status' => 400));
@@ -174,19 +174,20 @@ function wc_rest_user_endpoint_handler($request = null) {
     return $error;
   }
   if (empty($password)) {
-    $error->add(404, __("Password field 'password' is required.", 'wp-rest-user'), array('status' => 400));
+    $error->add(402, __("Password field 'password' is required.", 'wp-rest-user'), array('status' => 400));
     return $error;
   }
-  // if (empty($role)) {
-  //  $role = 'subscriber';
-  // } else {
-  //     if ($GLOBALS['wp_roles']->is_role($role)) {
-  //      // Silence is gold
-  //     } else {
-  //    $error->add(405, __("Role field 'role' is not a valid. Check your User Roles from Dashboard.", 'wp_rest_user'), array('status' => 400));
-  //    return $error;
-  //     }
-  // }
+  /*
+   if (empty($role)) {
+    $role = 'subscriber';
+   } else {
+       if ($GLOBALS['wp_roles']->is_role($role)) {
+         Silence is gold
+       } else {
+      $error->add(405, __("Role field 'role' is not a valid. Check your User Roles from Dashboard.", 'wp_rest_user'), array('status' => 400));
+      return $error;
+       }
+  }*/
   $user_id = username_exists($username);
   if (!$user_id && email_exists($email) == false) {
     $user_id = wp_create_user($username, $password, $email);
@@ -214,6 +215,8 @@ function wc_rest_user_endpoint_handler($request = null) {
 
 add_action( 'rest_api_init', 'register_api_hooks' );
 
+// Login
+
 function register_api_hooks() {
   register_rest_route('wp/v2/users/login/',
     array(
@@ -238,9 +241,15 @@ function login($request){
 
 add_action( 'after_setup_theme', 'custom_login' );
 
-
+// Post Meta
 
 register_rest_field( 'post', 'metadata', array(
     'get_callback' => function ( $data ) {
         return get_post_meta( $data['id'], '', '' );
     }, ));
+
+// Allow Comments
+function itech_filter_rest_allow_anonymous_comments() {
+    return true;
+}
+add_filter('rest_allow_anonymous_comments','itech_filter_rest_allow_anonymous_comments');
