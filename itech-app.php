@@ -1,12 +1,7 @@
 <?php
 
 /**
- * The plugin bootstrap file
- *
- * This file is read by WordPress to generate the plugin information in the plugin
- * admin area. This file also includes all of the dependencies used by the plugin,
- * registers the activation and deactivation functions, and defines a function
- * that starts the plugin.
+ * Itech App
  *
  * @link              https://itech-softsolutions.com/
  * @since             1.0.0
@@ -136,7 +131,8 @@ function it_posts_custom_column_views( $column ) {
 add_filter( 'manage_posts_columns', 'it_posts_column_views' );
 add_action( 'manage_posts_custom_column', 'it_posts_custom_column_views' );
 
-function itech_post_view_count( $content ) {
+/*
+function tt_post_view_count( $content ) {
 	if( is_single())  {
 		it_set_post_view();
 		 {?>
@@ -146,7 +142,8 @@ function itech_post_view_count( $content ) {
 	}
 	return $content;
 }
-add_filter( 'the_content', 'itech_post_view_count' );
+add_filter( 'the_content', 'tt_post_view_count' );
+*/
 
 // Register
 add_action('rest_api_init', 'wp_rest_user_endpoints');
@@ -248,8 +245,68 @@ register_rest_field( 'post', 'metadata', array(
         return get_post_meta( $data['id'], '', '' );
     }, ));
 
-// Allow Comments
-function itech_filter_rest_allow_anonymous_comments() {
+function filter_rest_allow_anonymous_comments() {
     return true;
 }
-add_filter('rest_allow_anonymous_comments','itech_filter_rest_allow_anonymous_comments');
+add_filter('rest_allow_anonymous_comments','filter_rest_allow_anonymous_comments');
+
+// Popular Posts
+add_action( 'rest_api_init', function () {
+  register_rest_route( 'base', '/views/(?P<id>\d+)', array(
+    'methods' => 'GET',
+    'callback' => 'post_view_counter_function',
+  ));
+});
+function post_view_counter_function( WP_REST_Request $request ) {
+  $post_id = $request['id'];
+if ( FALSE === get_post_status( $post_id ) ) {
+    return new WP_Error( 'error_no_post', 'Not a post id', array( 'status' => 404 ) );
+  } else {
+    $current_views = get_post_meta( $post_id, 'views', true );
+    $views = $current_views + 1;
+    update_post_meta( $post_id, 'views', $views );
+    return $views;
+  }
+}
+
+// Video Post
+
+function cptui_register_my_cpts() {
+
+	/**
+	 * Post Type: Videos.
+	 */
+
+	$labels = [
+		"name" => __( "Videos", "gutentim" ),
+		"singular_name" => __( "Video", "gutentim" ),
+	];
+
+	$args = [
+		"label" => __( "Videos", "gutentim" ),
+		"labels" => $labels,
+		"description" => "",
+		"public" => true,
+		"publicly_queryable" => true,
+		"show_ui" => true,
+		"show_in_rest" => true,
+		"rest_base" => "",
+		"rest_controller_class" => "WP_REST_Posts_Controller",
+		"has_archive" => false,
+		"show_in_menu" => true,
+		"show_in_nav_menus" => true,
+		"delete_with_user" => false,
+		"exclude_from_search" => false,
+		"capability_type" => "post",
+		"map_meta_cap" => true,
+		"hierarchical" => false,
+		"rewrite" => [ "slug" => "video", "with_front" => true ],
+		"query_var" => true,
+		"menu_icon" => "dashicons-format-video",
+		"supports" => [ "title", "editor", "thumbnail", "post-formats" ],
+	];
+
+	register_post_type( "video", $args );
+}
+
+add_action( 'init', 'cptui_register_my_cpts' );
